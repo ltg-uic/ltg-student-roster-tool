@@ -7,6 +7,7 @@ GET     /                      	controllers.Application.index()
 
 GET		/:run					controllers.Application.getPeopleInRun(run: String)
 POST 	/:run					controllers.Application.addPersonToRun(run: String)
+PUT		/:run/:person			controllers.Application.updatePersonInRun(run: String, person: String)
 DELETE	/:run/:person			controllers.Application.deletePersonInRun(run: String, person: String)
 	
 
