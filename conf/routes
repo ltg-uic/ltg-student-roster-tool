@@ -3,7 +3,7 @@
 # ~~~~
 
 # Home page
-GET     /                      	controllers.Application.index()
+GET     /                      	controllers.Assets.at(path="/public", file="index.html")
 
 GET		/:run					controllers.Application.getPeopleInRun(run: String)
 POST 	/:run					controllers.Application.addPersonToRun(run: String)
@@ -12,4 +12,4 @@ DELETE	/:run/:person			controllers.Application.deletePersonInRun(run: String, pe
 	
 
 # Map static resources from the /public folder to the /assets URL path
-GET     /assets/*file               controllers.Assets.at(path="/public", file)
+GET     /assets/*file           controllers.Assets.at(path="/public", file)

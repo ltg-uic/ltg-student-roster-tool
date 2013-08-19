@@ -1,3 +1,38 @@
-<h1>Hi there!</h1>
+<!DOCTYPE html>
+<html lang="en">
 
-This visualization will allow you to pick a run and then add and remove people from the run
+<head>
+	<meta charset="utf-8">
+  	<title>Student roster</title>
+  	<link rel="stylesheet" href="stylesheets/main.css"/>
+</head>
+
+<body>
+	Hi!
+  	<div id="rosterapp">
+		<script src="javascripts/backbone.js" type="text/javascript" charset="utf-8"></script>
+	  	<script src="javascripts/underscore.js" type="text/javascript" charset="utf-8"></script>
+		<script src="javascripts/jquery-1.10.2.js" type="text/javascript" charset="utf-8"></script>   
+		<script src="javascripts/rosterapp.js" type="text/javascript" charset="utf-8"></script>
+		
+
+  <!-- Templates -->
+
+  <script type="text/template" id="item-template">
+    <div class="view">
+      <input class="toggle" type="checkbox" <%= done ? 'checked="checked"' : '' %> />
+      <label><%- title %></label>
+      <a class="destroy"></a>
+    </div>
+    <input class="edit" type="text" value="<%- title %>" />
+  </script>
+
+  <script type="text/template" id="stats-template">
+    <% if (done) { %>
+      <a id="clear-completed">Clear <%= done %> completed <%= done == 1 ? 'item' : 'items' %></a>
+    <% } %>
+    <div class="todo-count"><b><%= remaining %></b> <%= remaining == 1 ? 'item' : 'items' %> left</div>
+  </script>
+
+  </body>
+</html>
