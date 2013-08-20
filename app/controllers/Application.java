@@ -1,12 +1,11 @@
 package controllers;
 
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.codehaus.jackson.JsonNode;
 
-import play.libs.F.Promise;
-import play.libs.WS;
-import play.libs.WS.WSRequestHolder;
 import play.mvc.BodyParser;
 import play.mvc.Controller;
 import play.mvc.Result;
@@ -21,14 +20,48 @@ import com.mongodb.util.JSON;
 
 public class Application extends Controller {
 
-	public static Result index() {
-		return ok(views.html.index.render());
+	private final static boolean XMPP_USER_REGISTRATION = true; 
+
+	
+
+	/**
+	 * GET /runs
+	 * @return
+	 */
+	public static Result getAllRuns() {
+		List<String> runs = new ArrayList<String>();
+		try {
+			DBCollection people = new MongoClient().getDB("roster").getCollection("people");
+			DBCursor allPeople = people.find();
+			try {
+				while (allPeople.hasNext()) {
+					String runName = allPeople.next().get("run").toString();
+					if (runName!=null && !runName.isEmpty() && !runs.contains(runName))
+						runs.add(runName);
+				}
+			} finally {
+				allPeople.close();
+			}
+		} catch (Exception e) {
+			return internalServerError(new BasicDBObject("status", "error").append("message", "Impossible to connect to DB").toString()).as("application/json");
+		}
+		// Assemble runs and send out
+		BasicDBList runs_json = new BasicDBList();
+		for(String run : runs)
+			runs_json.add(new BasicDBObject("_id", run));
+		BasicDBObject data = new BasicDBObject("runs", runs_json);
+		return ok(new BasicDBObject("status", "success").append("data", data).toString()).as("application/json");
+
 	}
 
+	
 
+	/**
+	 * GET /:run
+	 * @param run
+	 * @return
+	 */
 	public static Result getPeopleInRun(String run) {
-		if (run==null || run.isEmpty())
-			return badRequest("You didn't specify a run!");
 		BasicDBList roster = new BasicDBList();
 		try {
 			DBCollection people = new MongoClient().getDB("roster").getCollection("people");
@@ -41,81 +74,130 @@ public class Application extends Controller {
 				peopleInRun.close();
 			}
 		} catch (Exception e) {
-			return internalServerError("Impossible to connect to DB");
+			return internalServerError(new BasicDBObject("status", "error").append("message", "Impossible to connect to DB").toString()).as("application/json");
 		}
-		// Assemble roster and send out
-		return ok(new BasicDBObject("run", run).append("roster", roster).toString()).as("application/json");
+		// Assemble the roster and send out
+		BasicDBObject data = new BasicDBObject("roster", roster); 
+		return ok(new BasicDBObject("status", "success").append("data", data).toString()).as("application/json");
+	}
+	
+	
+	
+	/**
+	 * GET /:run/:person
+	 * @param run
+	 * @param person
+	 * @return
+	 */
+	public static Result getPersonInRun(String run, String person) {
+		BasicDBObject personInRun =  null;
+		try {
+			DBCollection people = new MongoClient().getDB("roster").getCollection("people");
+			personInRun = (BasicDBObject) people.findOne(new BasicDBObject("_id", person));
+			if (personInRun==null) 
+				return badRequest(new BasicDBObject("status", "fail").append("data", new BasicDBObject("_id", "This person doesn't exist in this run")).toString()).as("application/json");
+			if (!personInRun.getString("run").equals(run))
+				return badRequest(new BasicDBObject("status", "fail").append("data", new BasicDBObject("run", "Invalid run name")).toString()).as("application/json");
+		} catch (Exception e) {
+			return internalServerError(new BasicDBObject("status", "error").append("message", "Impossible to connect to DB").toString()).as("application/json");
+		}
+		// Assemble the response and send out 
+		return ok(new BasicDBObject("status", "success").append("data", new BasicDBObject("person", personInRun)).toString()).as("application/json");
 	}
 
 	
+	
+	/**
+	 * POST /:run
+	 * @param run
+	 * @return
+	 */
 	@BodyParser.Of(BodyParser.Json.class)
 	public static Result addPersonToRun(String run) {
 		// Parse and validate
 		JsonNode body = request().body().asJson(); 
 		if (body==null)
-			return badRequest("'Content-type' header needs to be 'application/json'");
+			return badRequest(new BasicDBObject("status", "fail").append("data", new BasicDBObject("message", "'Content-type' header needs to be 'application/json'")).toString()).as("application/json");
 		BasicDBObject json_body = (BasicDBObject) JSON.parse(body.toString());
 		if (json_body.get("_id")==null)
-			return badRequest("You need to specify at least '_id'");
+			return badRequest(new BasicDBObject("status", "fail").append("data", new BasicDBObject("_id", "You need to specify at least this field")).toString()).as("application/json");
 		String nick =  json_body.get("_id").toString();
 		if (nick.isEmpty())
-			return badRequest("You need to specify at least '_id'");
+			return badRequest(new BasicDBObject("status", "fail").append("data", new BasicDBObject("_id", "You need to specify at least this field")).toString()).as("application/json");
 		// Store in DB
 		DBCollection people = null;
 		try {
 			people = new MongoClient().getDB("roster").getCollection("people");
 		} catch (UnknownHostException e) {
-			return internalServerError("Impossible to connect to DB");
+			return internalServerError(new BasicDBObject("status", "error").append("message", "Impossible to connect to DB").toString()).as("application/json");
 		}
 		try {
 			people.insert(json_body.append("run", run));
 		} catch (MongoException e) {
-			return badRequest("A user with this name already exists, pick a different one");
+			return badRequest(new BasicDBObject("status", "fail").append("data", new BasicDBObject("message", "A user with this '_id' already exists, pick a different one")).toString()).as("application/json");
 		}
 		// Create XMPP user (if plugin is active)
-		WSRequestHolder req = WS.url("http://ltg.evl.uic.edu:9090/plugins/userService/userservice");
-		req.setQueryParameter("type", "add");
-		req.setQueryParameter("secret", "a6e58698e57a60acb3a8e20cbf3bdc3fdc9d8697");
-		req.setQueryParameter("username", json_body.getString("_id"));
-		req.setQueryParameter("password", json_body.getString("_id"));
-		Promise<WS.Response> res = req.get();
-		if (res.get().getBody().equals("<error>UserAlreadyExistsException</error>"))
-			return badRequest("A user with this name already exists, pick a different one");
-		if (res.get().getBody().equals("<error>RequestNotAuthorised</error>"))
-			return badRequest("Impossible to satisfy the request");
-		if (!res.get().getBody().equals("<result>ok</result>\n"))
-			return internalServerError("Myseterious error while trying to register the XMPP user");
-		return ok(json_body.toString()).as("application/json");
+		if (XMPP_USER_REGISTRATION) 
+			return OpenfireXMPPUserRegistration.registerXMPPUser(json_body);
+		return ok(new BasicDBObject("status", "success").append("data", new BasicDBObject("person", json_body)).toString()).as("application/json");
 	}
 
 
+	
+	/**
+	 * DELETE /:run/:person
+	 * @param run
+	 * @param person
+	 * @return
+	 */
 	public static Result deletePersonInRun(String run, String person) {
 		// Delete from DB
 		try {
 			DBCollection people = new MongoClient().getDB("roster").getCollection("people");
 			people.remove(new BasicDBObject("_id", person));
 		} catch (Exception e) {
-			return internalServerError("Impossible to connect to DB");
+			return internalServerError(new BasicDBObject("status", "error").append("message", "Impossible to connect to DB").toString()).as("application/json");
 		}
 		// Delete XMPP user (if plugin is active)
-		WSRequestHolder req = WS.url("http://ltg.evl.uic.edu:9090/plugins/userService/userservice");
-		req.setQueryParameter("type", "delete");
-		req.setQueryParameter("secret", "a6e58698e57a60acb3a8e20cbf3bdc3fdc9d8697");
-		req.setQueryParameter("username", person);
-		Promise<WS.Response> res = req.get();
-		// TODO for future use...
-		//if (res.get().getBody().equals("<error>UserNotFoundException</error>"))
-		//return badRequest("A user with this name doesn't exist");
-		if (res.get().getBody().equals("<error>RequestNotAuthorised</error>"))
-			return badRequest("Impossible to satisfy the request");
-		if (!res.get().getBody().equals("<result>ok</result>\n"))
-			return internalServerError("Myseterious error while trying to register the XMPP user");
-		return ok();
+		if (XMPP_USER_REGISTRATION) 
+			OpenfireXMPPUserRegistration.unregisterXMPPUser(person);
+		return ok(new BasicDBObject("status", "success").append("data", null).toString()).as("application/json");	
 	}
+
+
 	
-	
+	/**
+	 * PUT /:run/:person
+	 * @param run
+	 * @param person
+	 * @return
+	 */
 	public static Result updatePersonInRun(String run, String person) {
-		return notFound("Not yet implemented");
+		// Parse and validate
+		JsonNode body = request().body().asJson(); 
+		if (body==null)
+			return badRequest(new BasicDBObject("status", "fail").append("data", new BasicDBObject("message", "'Content-type' header needs to be 'application/json'")).toString()).as("application/json");
+		BasicDBObject json_body = (BasicDBObject) JSON.parse(body.toString());
+		if (json_body.get("_id")==null)
+			return badRequest(new BasicDBObject("status", "fail").append("data", new BasicDBObject("_id", "You need to specify at least this field")).toString()).as("application/json");
+		String nick =  json_body.get("_id").toString();
+		if (nick.isEmpty())
+			return badRequest(new BasicDBObject("status", "fail").append("data", new BasicDBObject("_id", "You need to specify at least this field")).toString()).as("application/json");
+		// Store changes in DB
+		DBCollection people = null;
+		BasicDBObject person_before_update = null;
+		try {
+			people = new MongoClient().getDB("roster").getCollection("people");
+			person_before_update = (BasicDBObject) people.findOne(new BasicDBObject("_id", nick));
+			people.update(new BasicDBObject("_id", nick), json_body.append("run", run), true, false);
+		} catch (UnknownHostException e) {
+			return internalServerError(new BasicDBObject("status", "error").append("message", "Impossible to connect to DB").toString()).as("application/json");
+		}
+		// Create XMPP user (if plugin is active)
+		if (XMPP_USER_REGISTRATION)
+			if (person_before_update==null)
+				return OpenfireXMPPUserRegistration.registerXMPPUser(json_body);
+		return ok(new BasicDBObject("status", "success").append("data", new BasicDBObject("person", json_body)).toString()).as("application/json");
 	}
 
 }

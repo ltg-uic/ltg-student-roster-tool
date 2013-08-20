@@ -9,12 +9,32 @@
 </head>
 
 <body>
-  	<div id="rosterapp">
+  	<div id="roster_app">
+	  	<script src="assets/javascripts/jquery-1.10.2.js" type="text/javascript" charset="utf-8"></script>
+		<script src="assets/javascripts/underscore.js" type="text/javascript" charset="utf-8"></script>
 		<script src="assets/javascripts/backbone.js" type="text/javascript" charset="utf-8"></script>
-	  	<script src="assets/javascripts/underscore.js" type="text/javascript" charset="utf-8"></script>
-		<script src="assets/javascripts/jquery-1.10.2.js" type="text/javascript" charset="utf-8"></script>   
-		<script src="assets/javascripts/rosterapp.js" type="text/javascript" charset="utf-8"></script>
-		
-		
+		<script src="assets/javascripts/rosterapp.js" type="text/javascript" charset="utf-8"></script>			
+		<div id="runs-div">
+			<ul id="runs-list"></ul>
+		</div>
+		<div id="people-div">
+			<ul id="people-list"></ul>
+		</div>
+		<div id="person-detail-div">
+			
+		</div>
+	</div>
+	
+	<!-- Templates -->
+
+	  <script type="text/template" id="run-template">
+	    <div class="view">
+	      <input class="toggle" type="checkbox" <%= done ? 'checked="checked"' : '' %> />
+	      <label><%- title %></label>
+	      <a class="destroy"></a>
+	    </div>
+	    <input class="edit" type="text" value="<%- title %>" />
+	  </script>
+	  	
   </body>
 </html>
