@@ -22,3 +22,6 @@ Finally this tool is buil to simplify life of LTG coders NOT to be the most gene
 
 - XMPP users are created with the same username and password which is their nick. 
  
+## API documentation
+
+We used the AWESOME apiary.io to [document our APIs](http://docs.gugo.apiary.io/).
