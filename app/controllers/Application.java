@@ -143,7 +143,7 @@ public class Application extends Controller {
 		// Create XMPP user (if plugin is active)
 		if (XMPP_USER_REGISTRATION) 
 			return OpenfireXMPPUserRegistration.registerXMPPUser(json_body);
-		Utils.stripRunTo_id(json_body);
+		Utils.stripRunFrom_id(json_body);
 		return ok(new BasicDBObject("status", "success").append("data", new BasicDBObject("person", json_body)).toString()).as("application/json");
 	}
 
@@ -207,7 +207,7 @@ public class Application extends Controller {
 		if (XMPP_USER_REGISTRATION)
 			if (person_before_update==null)
 				return OpenfireXMPPUserRegistration.registerXMPPUser(json_body);
-		Utils.stripRunTo_id(json_body);
+		Utils.stripRunFrom_id(json_body);
 		return ok(new BasicDBObject("status", "success").append("data", new BasicDBObject("person", json_body)).toString()).as("application/json");
 	}
 

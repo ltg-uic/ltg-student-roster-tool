@@ -18,7 +18,7 @@ public class UtilTest {
 	@Test
 	public void stripRunTo_idTest() {
 		BasicDBObject person = new BasicDBObject("_id", "testRun#testUser");
-		Utils.stripRunTo_id(person);
+		Utils.stripRunFrom_id(person);
 		assertEquals(person.getString("_id"), "testUser");
 	}
 

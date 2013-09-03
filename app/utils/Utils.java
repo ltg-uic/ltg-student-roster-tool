@@ -9,7 +9,7 @@ public class Utils {
 	}
 	
 	
-	public static void stripRunTo_id(BasicDBObject person) {
+	public static void stripRunFrom_id(BasicDBObject person) {
 		person.put("_id", person.getString("_id").split("#")[1] );
 	}
 
