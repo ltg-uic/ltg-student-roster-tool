@@ -21,7 +21,7 @@ import com.mongodb.util.JSON;
 
 public class Application extends Controller {
 
-	private final static boolean XMPP_USER_REGISTRATION = false; 
+	private final static boolean XMPP_USER_REGISTRATION = true; 
 
 	
 
