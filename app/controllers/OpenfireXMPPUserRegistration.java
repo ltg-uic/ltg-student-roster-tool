@@ -5,6 +5,7 @@ import play.libs.WS;
 import play.libs.WS.WSRequestHolder;
 import play.mvc.Controller;
 import play.mvc.Result;
+import utils.Utils;
 
 import com.mongodb.BasicDBObject;
 
@@ -26,6 +27,7 @@ public class OpenfireXMPPUserRegistration extends Controller {
 			return internalServerError(new BasicDBObject("status", "error").append("message", "Impossible to satisfy the request").toString()).as("application/json");
 		if (!res.get().getBody().equals("<result>ok</result>\n"))
 			return internalServerError(new BasicDBObject("status", "error").append("message", "Myseterious error while trying to register the XMPP user").toString()).as("application/json");
+		Utils.stripRunFrom_id(json);
 		return ok(new BasicDBObject("status", "success").append("data", new BasicDBObject("person", json)).toString()).as("application/json");
 	}
 
