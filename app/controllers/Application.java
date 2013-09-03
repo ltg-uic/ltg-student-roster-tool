@@ -20,7 +20,7 @@ import com.mongodb.util.JSON;
 
 public class Application extends Controller {
 
-	private final static boolean XMPP_USER_REGISTRATION = true; 
+	private final static boolean XMPP_USER_REGISTRATION = false; 
 
 	
 
@@ -57,7 +57,7 @@ public class Application extends Controller {
 	
 
 	/**
-	 * GET /:run
+	 * GET /runs/:run
 	 * @param run
 	 * @return
 	 */
@@ -84,7 +84,7 @@ public class Application extends Controller {
 	
 	
 	/**
-	 * GET /:run/:person
+	 * GET /runs/:run/:person
 	 * @param run
 	 * @param person
 	 * @return
@@ -108,7 +108,7 @@ public class Application extends Controller {
 	
 	
 	/**
-	 * POST /:run
+	 * POST /runs/:run
 	 * @param run
 	 * @return
 	 */
@@ -124,6 +124,9 @@ public class Application extends Controller {
 		String nick =  json_body.get("_id").toString();
 		if (nick.isEmpty())
 			return badRequest(new BasicDBObject("status", "fail").append("data", new BasicDBObject("_id", "You need to specify at least this field")).toString()).as("application/json");
+		// Alter DB object
+		json_body.append("run", run);
+		
 		// Store in DB
 		DBCollection people = null;
 		try {
@@ -132,7 +135,7 @@ public class Application extends Controller {
 			return internalServerError(new BasicDBObject("status", "error").append("message", "Impossible to connect to DB").toString()).as("application/json");
 		}
 		try {
-			people.insert(json_body.append("run", run));
+			people.insert(json_body);
 		} catch (MongoException e) {
 			return badRequest(new BasicDBObject("status", "fail").append("data", new BasicDBObject("message", "A user with this '_id' already exists, pick a different one")).toString()).as("application/json");
 		}
@@ -145,7 +148,7 @@ public class Application extends Controller {
 
 	
 	/**
-	 * DELETE /:run/:person
+	 * DELETE /runs/:run/:person
 	 * @param run
 	 * @param person
 	 * @return
@@ -167,7 +170,7 @@ public class Application extends Controller {
 
 	
 	/**
-	 * PUT /:run/:person
+	 * PUT /runs/:run/:person
 	 * @param run
 	 * @param person
 	 * @return
