@@ -69,7 +69,9 @@ public class Application extends Controller {
 			DBCursor peopleInRun = people.find(new BasicDBObject("run", run), new BasicDBObject("run", 0));
 			try {
 				while (peopleInRun.hasNext()) {
-					roster.add(peopleInRun.next());
+					BasicDBObject p = (BasicDBObject) peopleInRun.next();
+					Utils.stripRunFrom_id(p);
+					roster.add(p);
 				}
 			} finally {
 				peopleInRun.close();
