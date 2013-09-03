@@ -10,7 +10,7 @@ public class Global extends GlobalSettings {
 	
 	@Override
 	public Result onHandlerNotFound(RequestHeader arg) {
-		return Results.notFound(new BasicDBObject("status", "error").append("message", arg+" is not a valid location").toString()).as("application/json");
+		return Results.notFound(new BasicDBObject("status", "error").append("message", arg+" is not a valid resource").toString()).as("application/json");
 	}
 
 }

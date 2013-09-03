@@ -2,18 +2,18 @@
 # This file defines all application routes (Higher priority routes first)
 # ~~~~
 
-# Backbone.js frontend
+# Backbone.js front-end
 GET     /                      	controllers.Assets.at(path="/public", file="index.html")
 
 # Returns a list of all runs
 GET 	/runs					controllers.Application.getAllRuns()
 
 # Per runs routes
-GET		/:run					controllers.Application.getPeopleInRun(run: String)
-GET		/:run/:person			controllers.Application.getPersonInRun(run: String, person: String)
-POST 	/:run					controllers.Application.addPersonToRun(run: String)
-PUT		/:run/:person			controllers.Application.updatePersonInRun(run: String, person: String)
-DELETE	/:run/:person			controllers.Application.deletePersonInRun(run: String, person: String)
+GET		/runs/:run					controllers.Application.getPeopleInRun(run: String)
+GET		/runs/:run/:person			controllers.Application.getPersonInRun(run: String, person: String)
+POST 	/runs/:run					controllers.Application.addPersonToRun(run: String)
+PUT		/runs/:run/:person			controllers.Application.updatePersonInRun(run: String, person: String)
+DELETE	/runs/:run/:person			controllers.Application.deletePersonInRun(run: String, person: String)
 
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file           controllers.Assets.at(path="/public", file)
