@@ -9,6 +9,7 @@ import org.codehaus.jackson.JsonNode;
 import play.mvc.BodyParser;
 import play.mvc.Controller;
 import play.mvc.Result;
+import utils.Utils;
 
 import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
@@ -20,7 +21,7 @@ import com.mongodb.util.JSON;
 
 public class Application extends Controller {
 
-	private final static boolean XMPP_USER_REGISTRATION = true; 
+	private final static boolean XMPP_USER_REGISTRATION = false; 
 
 	
 
@@ -57,7 +58,7 @@ public class Application extends Controller {
 	
 
 	/**
-	 * GET /:run
+	 * GET /runs/:run
 	 * @param run
 	 * @return
 	 */
@@ -84,7 +85,7 @@ public class Application extends Controller {
 	
 	
 	/**
-	 * GET /:run/:person
+	 * GET /runs/:run/:person
 	 * @param run
 	 * @param person
 	 * @return
@@ -108,7 +109,7 @@ public class Application extends Controller {
 	
 	
 	/**
-	 * POST /:run
+	 * POST /runs/:run
 	 * @param run
 	 * @return
 	 */
@@ -124,6 +125,9 @@ public class Application extends Controller {
 		String nick =  json_body.get("_id").toString();
 		if (nick.isEmpty())
 			return badRequest(new BasicDBObject("status", "fail").append("data", new BasicDBObject("_id", "You need to specify at least this field")).toString()).as("application/json");
+		// Alter DB object
+		json_body.append("run", run);
+		Utils.appendRunTo_id(json_body, run);
 		// Store in DB
 		DBCollection people = null;
 		try {
@@ -132,20 +136,21 @@ public class Application extends Controller {
 			return internalServerError(new BasicDBObject("status", "error").append("message", "Impossible to connect to DB").toString()).as("application/json");
 		}
 		try {
-			people.insert(json_body.append("run", run));
+			people.insert(json_body);
 		} catch (MongoException e) {
 			return badRequest(new BasicDBObject("status", "fail").append("data", new BasicDBObject("message", "A user with this '_id' already exists, pick a different one")).toString()).as("application/json");
 		}
 		// Create XMPP user (if plugin is active)
 		if (XMPP_USER_REGISTRATION) 
 			return OpenfireXMPPUserRegistration.registerXMPPUser(json_body);
+		Utils.stripRunTo_id(json_body);
 		return ok(new BasicDBObject("status", "success").append("data", new BasicDBObject("person", json_body)).toString()).as("application/json");
 	}
 
 
 	
 	/**
-	 * DELETE /:run/:person
+	 * DELETE /runs/:run/:person
 	 * @param run
 	 * @param person
 	 * @return
@@ -154,7 +159,9 @@ public class Application extends Controller {
 		// Delete from DB
 		try {
 			DBCollection people = new MongoClient().getDB("roster").getCollection("people");
-			people.remove(new BasicDBObject("_id", person));
+			BasicDBObject p = new BasicDBObject("_id", person);
+			Utils.appendRunTo_id(p, run);
+			people.remove(p);
 		} catch (Exception e) {
 			return internalServerError(new BasicDBObject("status", "error").append("message", "Impossible to connect to DB").toString()).as("application/json");
 		}
@@ -167,7 +174,7 @@ public class Application extends Controller {
 
 	
 	/**
-	 * PUT /:run/:person
+	 * PUT /runs/:run/:person
 	 * @param run
 	 * @param person
 	 * @return
@@ -186,10 +193,13 @@ public class Application extends Controller {
 		// Store changes in DB
 		DBCollection people = null;
 		BasicDBObject person_before_update = null;
+		BasicDBObject p = new BasicDBObject("_id", nick);
+		Utils.appendRunTo_id(p, run);
+		Utils.appendRunTo_id(json_body, run);
 		try {
 			people = new MongoClient().getDB("roster").getCollection("people");
 			person_before_update = (BasicDBObject) people.findOne(new BasicDBObject("_id", nick));
-			people.update(new BasicDBObject("_id", nick), json_body.append("run", run), true, false);
+			people.update(p, json_body.append("run", run), true, false);
 		} catch (UnknownHostException e) {
 			return internalServerError(new BasicDBObject("status", "error").append("message", "Impossible to connect to DB").toString()).as("application/json");
 		}
@@ -197,6 +207,7 @@ public class Application extends Controller {
 		if (XMPP_USER_REGISTRATION)
 			if (person_before_update==null)
 				return OpenfireXMPPUserRegistration.registerXMPPUser(json_body);
+		Utils.stripRunTo_id(json_body);
 		return ok(new BasicDBObject("status", "success").append("data", new BasicDBObject("person", json_body)).toString()).as("application/json");
 	}
 
